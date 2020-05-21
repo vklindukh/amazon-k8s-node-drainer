@@ -51,6 +51,7 @@ def mock_k8s_client(mocker):
             'name': 'test_pod1',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': None
         }
         }, {'metadata': {
@@ -58,6 +59,7 @@ def mock_k8s_client(mocker):
             'name': 'test_pod2',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': None
         }
         }

@@ -1,5 +1,6 @@
 import logging
 import time
+import os.path
 
 from kubernetes.client.rest import ApiException
 
@@ -9,6 +10,12 @@ logger.setLevel(logging.DEBUG)
 MIRROR_POD_ANNOTATION_KEY = "kubernetes.io/config.mirror"
 CONTROLLER_KIND_DAEMON_SET = "DaemonSet"
 
+if 'NO_EVICT_LABELS' in os.environ:
+    NO_EVICT_LABELS = {}
+    NO_EVICT_LABELS[os.environ['NO_EVICT_LABELS'].split('=')[0]] = os.environ['NO_EVICT_LABELS'].split('=')[1]
+    logger.debug('Found NO_EVICT_LABELS defined: ', NO_EVICT_LABELS)
+else:
+    NO_EVICT_LABELS = None
 
 def cordon_node(api, node_name):
     """Marks the specified node as unschedulable, which means that no new pods can be launched on the
@@ -30,7 +37,7 @@ def cordon_node(api, node_name):
 
 def remove_all_pods(api, node_name, poll=5):
     """Removes all Kubernetes pods from the specified node."""
-    pods = get_evictable_pods(api, node_name)
+    pods = get_removable_pods(api, node_name)
 
     logger.debug('Number of pods to delete: ' + str(len(pods)))
 
@@ -49,7 +56,25 @@ def pod_is_evictable(pod):
             if ref.kind == CONTROLLER_KIND_DAEMON_SET:
                 logger.info("Skipping DaemonSet {}/{}".format(pod.metadata.namespace, pod.metadata.name))
                 return False
+    logger.info("Pod is evictable {}/{}".format(pod.metadata.namespace, pod.metadata.name))
     return True
+
+
+def pod_is_removable(pod):
+    if NO_EVICT_LABELS is not None and pod.metadata.labels is not None:
+        for label in NO_EVICT_LABELS:
+            if pod.metadata.labels.get(label) and pod.metadata.labels.get(label) == NO_EVICT_LABELS[label]:
+                logger.info("Skipping pod {}/{} with label {}={}".format(pod.metadata.namespace,
+                                                                         pod.metadata.name, label,
+                                                                         NO_EVICT_LABELS[label]))
+                return False
+    return pod_is_evictable(pod)
+
+
+def get_removable_pods(api, node_name):
+    field_selector = 'spec.nodeName=' + node_name
+    pods = api.list_pod_for_all_namespaces(watch=False, field_selector=field_selector, include_uninitialized=True)
+    return [pod for pod in pods.items if pod_is_removable(pod)]
 
 
 def get_evictable_pods(api, node_name):

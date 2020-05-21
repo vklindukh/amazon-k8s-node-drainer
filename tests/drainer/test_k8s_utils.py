@@ -50,6 +50,7 @@ def test_remove_all_pods(mocker):
             'name': 'test_pod1',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': None
         }
         }, {'metadata': {
@@ -57,6 +58,7 @@ def test_remove_all_pods(mocker):
             'name': 'test_pod2',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': None
         }
         }
@@ -100,6 +102,7 @@ def test_remove_disruption_failure(mocker):
             'name': 'test_pod1',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': None
         }
         }
@@ -137,6 +140,7 @@ def test_remove_pending(mocker):
             'name': 'test_pod1',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': None
         }
         }
@@ -173,6 +177,7 @@ def test_skip_daemonsets(mocker):
             'name': 'test_pod1',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': [
                 {
                     'controller': True,
@@ -185,6 +190,7 @@ def test_skip_daemonsets(mocker):
             'name': 'test_pod2',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': None
         }
         }
@@ -195,6 +201,7 @@ def test_skip_daemonsets(mocker):
             'name': 'test_pod1',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': [
                 {
                     'controller': True,
@@ -231,6 +238,9 @@ def test_skip_mirror_pods(mocker):
             'annotations': {
                 'kubernetes.io/config.mirror': 'mirror'
             },
+            'labels': {
+                'test_label': 'test_value'
+            },
             'owner_references': None
         }
         }, {'metadata': {
@@ -238,10 +248,11 @@ def test_skip_mirror_pods(mocker):
             'name': 'test_pod2',
             'namespace': 'test_ns',
             'annotations': None,
+            'labels': None,
             'owner_references': None
         }
         }
-    ]}, skip={".items.metadata.annotations": True})
+    ]}, skip={".items.metadata.annotations": True, ".items.metadata.labels": True})
     unevictable_pods_val = dict_to_simple_namespace({'items': [
         {'metadata': {
             'uid': 'aaa',
@@ -250,10 +261,13 @@ def test_skip_mirror_pods(mocker):
             'annotations': {
                 'kubernetes.io/config.mirror': 'mirror'
             },
+            'labels': {
+                'test_label': 'test_value'
+            },
             'owner_references': None
         }
         }
-    ]}, skip={".items.metadata.annotations": True})
+    ]}, skip={".items.metadata.annotations": True, ".items.metadata.labels": True})
     mock_api = mocker.Mock(**{'list_pod_for_all_namespaces.side_effect': [list_pods_val, unevictable_pods_val]})
 
     remove_all_pods(mock_api, 'test_node')
